@@ -1,7 +1,7 @@
 # [format-json](https://hai2007.github.io/format-json/)
 格式化json字符串的在线工具
 
-<img src='./view.png'>
+<img src='./logo.png'>
 
 ## Issues
 使用的时候遇到任何问题或有好的建议，请点击进入[issue](https://github.com/hai2007/format-json/issues)，欢迎参与维护！
