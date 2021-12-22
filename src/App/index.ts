@@ -1,8 +1,7 @@
 import { Component } from 'nefbl'
 import { toJSON } from '@hai2007/algorithm/json.js'
 
-let OpenWebEditor = require('open-web-editor')
-
+import OpenWebEditor from 'open-web-editor'
 
 import style from './index.scss'
 import template from './index.html'
@@ -49,8 +48,7 @@ export default class {
                 cursor: "#ff0000", /*光标颜色*/
                 select: "#6c6cf1", /*选择背景*/
             },
-            content: `/*
-请直接在此编辑或者粘贴你需要格式化的json字符串即可，
+            content: `/*请直接在此编辑或者粘贴你需要格式化的json字符串即可，
 支持非严格模式，例如：
 
 {
