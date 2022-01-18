@@ -126,12 +126,12 @@ window.__etcpack__bundleSrc__['2']=function(){
  *
  * author 你好2007 < https://hai2007.gitee.io/sweethome >
  *
- * version 0.2.1
+ * version 0.2.6
  *
  * Copyright (c) 2021-2021 hai2007 走一步，再走一步。
  * Released under the MIT license
  *
- * Date:Sat Oct 09 2021 17:51:36 GMT+0800 (中国标准时间)
+ * Date:Thu Dec 02 2021 16:51:00 GMT+0800 (中国标准时间)
  */
 (function () {
   'use strict';
@@ -304,19 +304,6 @@ window.__etcpack__bundleSrc__['2']=function(){
   }
 
   /**
-   * 判断一个值是不是String。
-   *
-   * @param {*} value 需要判断类型的值
-   * @returns {boolean} 如果是String返回true，否则返回false
-   */
-
-  function _isString (value) {
-    var type = _typeof(value);
-
-    return type === 'string' || type === 'object' && value != null && !Array.isArray(value) && getType(value) === '[object String]';
-  }
-
-  /**
    * 判断一个值是不是Function。
    *
    * @param {*} value 需要判断类型的值
@@ -344,7 +331,6 @@ window.__etcpack__bundleSrc__['2']=function(){
 
 
   var isObject = _isObject; // 基本类型
-  var isString = _isString;
 
   var isFunction = _isFunction;
   var isArray = function isArray(input) {
@@ -474,6 +460,40 @@ window.__etcpack__bundleSrc__['2']=function(){
     blanksReg: /^[\x20\t\r\n\f]{0,}$/,
     // 标志符
     identifier: /^[a-zA-Z_$][0-9a-zA-Z_$]{0,}$/
+  };
+
+  var toString$1 = Object.prototype.toString;
+  /**
+   * 获取一个值的类型字符串[object type]
+   *
+   * @param {*} value 需要返回类型的值
+   * @returns {string} 返回类型字符串
+   */
+
+  function getType$1 (value) {
+    if (value == null) {
+      return value === undefined ? '[object Undefined]' : '[object Null]';
+    }
+
+    return toString$1.call(value);
+  }
+
+  /**
+   * 判断一个值是不是String。
+   *
+   * @param {*} value 需要判断类型的值
+   * @returns {boolean} 如果是String返回true，否则返回false
+   */
+
+  function _isString (value) {
+    var type = _typeof(value);
+
+    return type === 'string' || type === 'object' && value != null && !Array.isArray(value) && getType$1(value) === '[object String]';
+  }
+
+  var isString = _isString;
+  var isArray$1 = function isArray(input) {
+    return Array.isArray(input);
   };
 
   function analyseTag (attrString) {
@@ -849,6 +869,7 @@ window.__etcpack__bundleSrc__['2']=function(){
           DomTree.push(tag);
         }
       } else {
+        tag.tagName = tag.tagName.trim();
         DomTree.push(tag);
       }
 
@@ -1632,7 +1653,7 @@ window.__etcpack__bundleSrc__['2']=function(){
 
     for (var i = 0; i < path.length - 1; i++) {
       // 如果需要补充
-      if (!(path[i] in _target)) _target[path[i]] = isArray(_target) ? [] : {}; // 拼接下一个
+      if (!(path[i] in _target)) _target[path[i]] = isArray$1(_target) ? [] : {}; // 拼接下一个
 
       _target = _target[path[i]];
     }
@@ -1641,35 +1662,50 @@ window.__etcpack__bundleSrc__['2']=function(){
     return target;
   };
 
+  function toNode(tagname) {
+    if (['svg', 'circle', 'path', 'rect', 'ellipse', 'line', 'polyline', 'polygon', 'text'].indexOf(tagname) > -1) {
+      return document.createElementNS('http://www.w3.org/2000/svg', tagname);
+    } else {
+      return document.createElement(tagname);
+    }
+  }
+
   function mountComponent(target, Component, module) {
     var component = new Component();
+    var hadWillUpdate = false;
 
     var observeFunction = function observeFunction() {
-      if (isFunction(component.$beforeUpdate)) component.$beforeUpdate(); // 触发指令
+      if (!hadWillUpdate) {
+        hadWillUpdate = true;
+        setTimeout(function () {
+          if (isFunction(component.$beforeUpdate)) component.$beforeUpdate(); // 触发指令
 
-      var _iterator = _createForOfIteratorHelper(component.__directives),
-          _step;
+          var _iterator = _createForOfIteratorHelper(component.__directives),
+              _step;
 
-      try {
-        for (_iterator.s(); !(_step = _iterator.n()).done;) {
-          var directiveInstance = _step.value;
+          try {
+            for (_iterator.s(); !(_step = _iterator.n()).done;) {
+              var directiveInstance = _step.value;
 
-          if (isFunction(directiveInstance.instance.$update)) {
-            directiveInstance.instance.$update(directiveInstance.el, {
-              type: directiveInstance.type,
-              exp: directiveInstance.exp,
-              value: evalExpress(component, directiveInstance.exp),
-              target: component
-            });
+              if (isFunction(directiveInstance.instance.$update)) {
+                directiveInstance.instance.$update(directiveInstance.el, {
+                  type: directiveInstance.type,
+                  exp: directiveInstance.exp,
+                  value: directiveInstance.exp ? evalExpress(component, directiveInstance.exp) : undefined,
+                  target: component
+                });
+              }
+            }
+          } catch (err) {
+            _iterator.e(err);
+          } finally {
+            _iterator.f();
           }
-        }
-      } catch (err) {
-        _iterator.e(err);
-      } finally {
-        _iterator.f();
-      }
 
-      if (isFunction(component.$updated)) component.$updated();
+          if (isFunction(component.$updated)) component.$updated();
+          hadWillUpdate = false;
+        }, 0);
+      }
     };
 
     if (isFunction(component.$setup)) {
@@ -1708,7 +1744,7 @@ window.__etcpack__bundleSrc__['2']=function(){
           component.__children.push(mountComponent(pEl, module.__component__[vnode.name], module));
         } // 否则就是普通的标签
         else {
-            el = document.createElement(vnode.name);
+            el = toNode(vnode.name);
 
             for (var attrKey in vnode.attrs) {
               var attrKeys = (attrKey + ":").split(':'); // 指令
@@ -1724,7 +1760,7 @@ window.__etcpack__bundleSrc__['2']=function(){
                       directiveInstance.$inserted(el, {
                         type: type,
                         exp: exp,
-                        value: evalExpress(component, exp),
+                        value: exp ? evalExpress(component, exp) : undefined,
                         target: component
                       });
                     });
@@ -1765,7 +1801,8 @@ window.__etcpack__bundleSrc__['2']=function(){
           }
       } else if (vnode.type == 'text') {
         el = document.createTextNode("");
-        el.textContent = vnode.content.replace(/↵/g, '\n');
+        el.textContent = vnode.content.replace(/↵/g, '\n') // 特殊转义字符进行校对
+        .replace(/\&lt;/g, '<').replace(/\&gt;/g, '>').replace(/\&amp;/g, '&');
       }
 
       if (el != null) {
@@ -2738,9 +2775,12 @@ __etcpack__scope_args__=window.__etcpack__getBundle('24');
 var OpenWebEditor =__etcpack__scope_args__.default;
 
 __etcpack__scope_args__=window.__etcpack__getBundle('26');
-var style =__etcpack__scope_args__.default;
+var xhtml =__etcpack__scope_args__.default;
 
 __etcpack__scope_args__=window.__etcpack__getBundle('27');
+var style =__etcpack__scope_args__.default;
+
+__etcpack__scope_args__=window.__etcpack__getBundle('28');
 var template =__etcpack__scope_args__.default;
 
 
@@ -2826,7 +2866,7 @@ var _class = (_dec = Component({
           /*选择背景*/
 
         },
-        content: "/*\u8BF7\u76F4\u63A5\u5728\u6B64\u7F16\u8F91\u6216\u8005\u7C98\u8D34\u4F60\u9700\u8981\u683C\u5F0F\u5316\u7684json\u5B57\u7B26\u4E32\u5373\u53EF\uFF0C\n\u652F\u6301\u975E\u4E25\u683C\u6A21\u5F0F\uFF0C\u4F8B\u5982\uFF1A\n\n{\n    key:'value'\n}\n\n\u7531\u4EFB\u4F55\u95EE\u9898\uFF0C\u76F4\u63A5\u63D0issue\uFF1A https://github.com/hai2007/format-json/issues\n\n\u672C\u9879\u76EE\u57FA\u4E8E\uFF1A\n\u3010\u7F16\u8F91\u5668\u3011https://github.com/hai2007/Open-Web-Editor\n\u3010\u7B97\u6CD5\u652F\u6301\u3011https://github.com/hai2007/algorithm.js\n*/\n",
+        content: " \n \n \n \n \n",
         shader: ["javascript", {
           "text": "#000000",
 
@@ -2859,6 +2899,30 @@ var _class = (_dec = Component({
 
 
         document.getElementById('source').click();
+      }); // 添加复制按钮
+
+      var btnNode = xhtml.prepend(document.getElementById('target'), '<span class="copy-btn" title="复制到剪切板">复制<span></span></span>');
+      xhtml.bind(btnNode, 'click', function () {
+        target.copy(function () {
+          alert('复制成功');
+        }, function (error) {
+          console.log(error);
+          alert('复制失败');
+        });
+      });
+      xhtml.setStyles(btnNode, {
+        position: "absolute",
+        right: "10px",
+        top: "6px",
+        border: "none",
+        outline: 0,
+        transition: "0.2s",
+        "font-size": "12px",
+        cursor: "pointer",
+        "z-index": 1,
+        "line-height": '20px',
+        "background-color": "#f8f8f8",
+        "padding": "5px 10px"
       });
     }
   }]);
@@ -5275,9 +5339,324 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 }
 
 /*************************** [bundle] ****************************/
-// Original file:./src/App/index.scss
+// Original file:./node_modules/@hai2007/browser/xhtml.js
 /*****************************************************************/
 window.__etcpack__bundleSrc__['26']=function(){
+    var __etcpack__scope_bundle__={};
+    var __etcpack__scope_args__;
+    /*!
+ * 🌐 - 提供常用的DOM操作方法
+ * https://github.com/hai2007/browser.js/blob/master/xhtml.js
+ *
+ * author hai2007 < https://hai2007.gitee.io/sweethome >
+ *
+ * Copyright (c) 2021-present hai2007 走一步，再走一步。
+ * Released under the MIT license
+ */
+
+// 命名空间路径
+var namespace = {
+    svg: "http://www.w3.org/2000/svg",
+    xhtml: "http://www.w3.org/1999/xhtml",
+    xlink: "http://www.w3.org/1999/xlink",
+    xml: "http://www.w3.org/XML/1998/namespace",
+    xmlns: "http://www.w3.org/2000/xmlns/"
+};
+
+/**
+ * 结点操作补充
+ */
+
+__etcpack__scope_bundle__.default= {
+
+    // 阻止冒泡
+    "stopPropagation": function (event) {
+        event = event || window.event;
+        if (event.stopPropagation) { //这是其他非IE浏览器
+            event.stopPropagation();
+        } else {
+            event.cancelBubble = true;
+        }
+    },
+
+    // 阻止默认事件
+    "preventDefault": function (event) {
+        event = event || window.event;
+        if (event.preventDefault) {
+            event.preventDefault();
+        } else {
+            event.returnValue = false;
+        }
+    },
+
+    // 判断是否是结点
+    "isNode": function (param) {
+        return param && (param.nodeType === 1 || param.nodeType === 9 || param.nodeType === 11);
+    },
+
+    // 绑定事件
+    "bind": function (dom, eventType, callback) {
+
+        if (dom.constructor === Array || dom.constructor === NodeList || dom.constructor === HTMLCollection) {
+            for (var i = 0; i < dom.length; i++) {
+                this.bind(dom[i], eventType, callback);
+            }
+            return;
+        }
+
+        if (window.attachEvent)
+            dom.attachEvent("on" + eventType, callback);
+        else
+            dom.addEventListener(eventType, callback, false);
+    },
+    // 去掉绑定事件
+    "unbind": function (dom, eventType, handler) {
+
+        if (dom.constructor === Array || dom.constructor === NodeList || dom.constructor === HTMLCollection) {
+            for (var i = 0; i < dom.length; i++) {
+                this.unbind(dom[i], eventType, handler);
+            }
+            return;
+        }
+
+        if (window.detachEvent)
+            dom.detachEvent('on' + eventType, handler);
+        else
+            dom.removeEventListener(eventType, handler, false);
+
+    },
+
+    // 在当前上下文context上查找结点
+    // selectFun可选，返回boolean用以判断当前面对的结点是否保留
+    "find": function (context, selectFun, tagName) {
+        if (!this.isNode(context)) return [];
+        var nodes = context.getElementsByTagName(tagName || '*');
+        var result = [];
+        for (var i = 0; i < nodes.length; i++) {
+            if (this.isNode(nodes[i]) && (typeof selectFun != "function" || selectFun(nodes[i])))
+                result.push(nodes[i]);
+        }
+        return result;
+    },
+
+    // 寻找当前结点的孩子结点
+    // selectFun可选，返回boolean用以判断当前面对的结点是否保留
+    "children": function (dom, selectFun) {
+        var nodes = dom.childNodes;
+        var result = [];
+        for (var i = 0; i < nodes.length; i++) {
+            if (this.isNode(nodes[i]) && (typeof selectFun != "function" || selectFun(nodes[i])))
+                result.push(nodes[i]);
+        }
+        return result;
+    },
+
+    // 判断结点是否有指定class
+    // clazzs可以是字符串或数组字符串
+    // notStrict可选，boolean值，默认false表示结点必须包含全部class,true表示至少包含一个即可
+    "hasClass": function (dom, clazzs, notStrict) {
+        if (clazzs.constructor !== Array) clazzs = [clazzs];
+
+        var class_str = " " + (dom.getAttribute('class') || "") + " ";
+        for (var i = 0; i < clazzs.length; i++) {
+            if (class_str.indexOf(" " + clazzs[i] + " ") >= 0) {
+                if (notStrict) return true;
+            } else {
+                if (!notStrict) return false;
+            }
+        }
+        return true;
+    },
+
+    // 删除指定class
+    "removeClass": function (dom, clazz) {
+        var oldClazz = " " + (dom.getAttribute('class') || "") + " ";
+        var newClazz = oldClazz.replace(" " + clazz.trim() + " ", " ");
+        dom.setAttribute('class', newClazz.trim());
+    },
+
+    // 添加指定class
+    "addClass": function (dom, clazz) {
+        if (this.hasClass(dom, clazz)) return;
+        var oldClazz = dom.getAttribute('class') || "";
+        dom.setAttribute('class', oldClazz + " " + clazz);
+    },
+
+    // 字符串变成结点
+    // isSvg可选，boolean值，默认false表示结点是html，为true表示svg类型
+    "toNode": function (template, isSvg) {
+        var frame;
+
+        // html和svg上下文不一样
+        if (isSvg) frame = document.createElementNS(namespace.svg, 'svg');
+        else {
+
+            var frameTagName = 'div';
+
+            // 大部分的标签可以直接使用div作为容器
+            // 部分特殊的需要特殊的容器标签
+
+            if (/^<tr[> ]/.test(template)) {
+
+                frameTagName = "tbody";
+
+            } else if (/^<th[> ]/.test(template) || /^<td[> ]/.test(template)) {
+
+                frameTagName = "tr";
+
+            } else if (/^<thead[> ]/.test(template) || /^<tbody[> ]/.test(template)) {
+
+                frameTagName = "table";
+
+            }
+
+            frame = document.createElement(frameTagName);
+        }
+
+        // 低版本浏览器svg没有innerHTML，考虑是vue框架中，没有补充
+        frame.innerHTML = template;
+
+        var childNodes = frame.childNodes;
+        for (var i = 0; i < childNodes.length; i++) {
+            if (this.isNode(childNodes[i])) return childNodes[i];
+        }
+    },
+
+    // 主动触发事件
+    "trigger": function (dom, eventType) {
+
+        //创建event的对象实例。
+        if (document.createEventObject) {
+            // IE浏览器支持fireEvent方法
+            dom.fireEvent('on' + eventType, document.createEventObject());
+        }
+
+        // 其他标准浏览器使用dispatchEvent方法
+        else {
+            var _event = document.createEvent('HTMLEvents');
+            // 3个参数：事件类型，是否冒泡，是否阻止浏览器的默认行为
+            _event.initEvent(eventType, true, false);
+            dom.dispatchEvent(_event);
+        }
+
+    },
+
+    // 获取样式
+    "getStyle": function (dom, name) {
+        // 获取结点的全部样式
+        var allStyle = document.defaultView && document.defaultView.getComputedStyle ?
+            document.defaultView.getComputedStyle(dom, null) :
+            dom.currentStyle;
+
+        // 如果没有指定属性名称，返回全部样式
+        return typeof name === 'string' ?
+            allStyle.getPropertyValue(name) :
+            allStyle;
+    },
+
+    // 获取元素位置
+    "offsetPosition": function (dom) {
+        var left = 0;
+        var top = 0;
+        top = dom.offsetTop;
+        left = dom.offsetLeft;
+        dom = dom.offsetParent;
+        while (dom) {
+            top += dom.offsetTop;
+            left += dom.offsetLeft;
+            dom = dom.offsetParent;
+        }
+        return {
+            "left": left,
+            "top": top
+        };
+    },
+
+    // 获取鼠标相对元素位置
+    "mousePosition": function (dom, event) {
+        var bounding = dom.getBoundingClientRect();
+        if (!event || !event.clientX)
+            throw new Error('Event is necessary!');
+        return {
+            "x": event.clientX - bounding.left,
+            "y": event.clientY - bounding.top
+        };
+    },
+
+    // 删除结点
+    "remove": function (dom) {
+        dom.parentNode.removeChild(dom);
+    },
+
+    // 设置多个样式
+    "setStyles": function (dom, styles) {
+        for (var key in styles)
+            dom.style[key] = styles[key];
+    },
+
+    // 获取元素大小
+    "size": function (dom, type) {
+        var elemHeight, elemWidth;
+        if (type == 'content') { //内容
+            elemWidth = dom.clientWidth - ((this.getStyle(dom, 'padding-left') + "").replace('px', '')) - ((this.getStyle(dom, 'padding-right') + "").replace('px', ''));
+            elemHeight = dom.clientHeight - ((this.getStyle(dom, 'padding-top') + "").replace('px', '')) - ((this.getStyle(dom, 'padding-bottom') + "").replace('px', ''));
+        } else if (type == 'padding') { //内容+内边距
+            elemWidth = dom.clientWidth;
+            elemHeight = dom.clientHeight;
+        } else if (type == 'border') { //内容+内边距+边框
+            elemWidth = dom.offsetWidth;
+            elemHeight = dom.offsetHeight;
+        } else if (type == 'scroll') { //滚动的宽（不包括border）
+            elemWidth = dom.scrollWidth;
+            elemHeight = dom.scrollHeight;
+        } else {
+            elemWidth = dom.offsetWidth;
+            elemHeight = dom.offsetHeight;
+        }
+        return {
+            width: elemWidth,
+            height: elemHeight
+        };
+    },
+
+    // 在被选元素内部的结尾插入内容
+    "append": function (el, template) {
+        var node = this.isNode(template) ? template : this.toNode(template);
+        el.appendChild(node);
+        return node;
+    },
+
+    // 在被选元素内部的开头插入内容
+    "prepend": function (el, template) {
+        var node = this.isNode(template) ? template : this.toNode(template);
+        el.insertBefore(node, el.childNodes[0]);
+        return node;
+    },
+
+    // 在被选元素之后插入内容
+    "after": function (el, template) {
+        var node = this.isNode(template) ? template : this.toNode(template);
+        el.parentNode.insertBefore(node, el.nextSibling);
+        return node;
+    },
+
+    // 在被选元素之前插入内容
+    "before": function (el, template) {
+        var node = this.isNode(template) ? template : this.toNode(template);
+        el.parentNode.insertBefore(node, el);
+        return node;
+    }
+
+};
+
+  
+    return __etcpack__scope_bundle__;
+}
+
+/*************************** [bundle] ****************************/
+// Original file:./src/App/index.scss
+/*****************************************************************/
+window.__etcpack__bundleSrc__['27']=function(){
     var __etcpack__scope_bundle__={};
     var __etcpack__scope_args__;
     __etcpack__scope_bundle__.default= "\n header{\n\nbackground-color: #fff;\n\nborder-bottom: 1px solid #eaecef;\n\nheight: 60px;\n\nline-height: 60px;\n\npadding-left: 80px;\n\npadding-right: 10px;\n\nbackground-image: url('./logo.png');\n\nbackground-size: auto 70%;\n\nbackground-position: 20px center;\n\nbackground-repeat: no-repeat;\n\nwhite-space: nowrap;\n\n}\n\n header>span{\n\nfont-family: cursive;\n\nfont-size: 20px;\n\nfont-weight: 200;\n\n}\n\n header>nav{\n\nposition: absolute;\n\nright: 10px;\n\ntop: 0;\n\nz-index: 2;\n\n}\n\n header>nav>span{\n\nmargin-right: 10px;\n\nfont-size: 14px;\n\ncursor: pointer;\n\npadding: 0 10px;\n\ndisplay: inline-block;\n\nvertical-align: top;\n\n}\n\n header>nav>span>a{\n\nposition: relative;\n\nmargin-right: 30px;\n\n}\n\n header>nav>span>a::after{\n\nposition: absolute;\n\nbackground-image: url('./images/link.png');\n\nbackground-repeat: no-repeat;\n\ncontent: \" \";\n\ndisplay: inline-block;\n\nwidth: 11px;\n\nheight: 11px;\n\ntop: 3px;\n\nright: -16px;\n\n}\n\n header>nav>span:hover{\n\nfont-weight: 800;\n\n}\n\n .container{\n\noverflow: hidden;\n\nposition: relative;\n\n}\n\n .container>div{\n\ndisplay: inline-block;\n\nvertical-align: top;\n\nwidth: 50%;\n\nheight: calc(100vh - 60px);\n\nborder: 1px solid #eaecef;\n\n}\n\n .container>div:last-child{\n\ncursor: not-allowed !important;\n\n}\n"
@@ -5288,7 +5667,7 @@ window.__etcpack__bundleSrc__['26']=function(){
 /*************************** [bundle] ****************************/
 // Original file:./src/App/index.html
 /*****************************************************************/
-window.__etcpack__bundleSrc__['27']=function(){
+window.__etcpack__bundleSrc__['28']=function(){
     var __etcpack__scope_bundle__={};
     var __etcpack__scope_args__;
     __etcpack__scope_bundle__.default= "<header>\n    <span>\n        Format Json | 格式化json字符串的在线工具\n    </span>\n    <nav>\n        <span>\n            <a href=\"https://github.com/hai2007/format-json\" target=\"_blank\">GitHub</a>\n        </span>\n        <ui-search></ui-search>\n    </nav>\n</header>\n<div class='container'>\n    <div id=\"source\"></div>\n    <div id=\"target\"></div>\n</div>"

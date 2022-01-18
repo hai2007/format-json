@@ -2,6 +2,7 @@ import { Component } from 'nefbl'
 import { toJSON } from '@hai2007/algorithm/json.js'
 
 import OpenWebEditor from 'open-web-editor'
+import xhtml from '@hai2007/browser/xhtml'
 
 import style from './index.scss'
 import template from './index.html'
@@ -48,19 +49,11 @@ export default class {
                 cursor: "#ff0000", /*光标颜色*/
                 select: "#6c6cf1", /*选择背景*/
             },
-            content: `/*请直接在此编辑或者粘贴你需要格式化的json字符串即可，
-支持非严格模式，例如：
-
-{
-    key:'value'
-}
-
-由任何问题，直接提issue： https://github.com/hai2007/format-json/issues
-
-本项目基于：
-【编辑器】https://github.com/hai2007/Open-Web-Editor
-【算法支持】https://github.com/hai2007/algorithm.js
-*/
+            content: ` 
+ 
+ 
+ 
+ 
 `,
             shader: ["javascript", {
                 "text": "#000000",/*文本颜色*/
@@ -82,6 +75,33 @@ export default class {
             // 使得光标回到录入编辑器界面
             document.getElementById('source').click()
 
+        })
+
+        // 添加复制按钮
+        let btnNode = xhtml.prepend(document.getElementById('target'), '<span class="copy-btn" title="复制到剪切板">复制<span></span></span>')
+
+        xhtml.bind(btnNode, 'click', () => {
+            target.copy(() => {
+                alert('复制成功')
+            }, error => {
+                console.log(error);
+                alert('复制失败')
+            })
+        })
+
+        xhtml.setStyles(btnNode, {
+            position: "absolute",
+            right: "10px",
+            top: "6px",
+            border: "none",
+            outline: 0,
+            transition: "0.2s",
+            "font-size": "12px",
+            cursor: "pointer",
+            "z-index": 1,
+            "line-height": '20px',
+            "background-color": "#f8f8f8",
+            "padding": "5px 10px"
         })
 
     }

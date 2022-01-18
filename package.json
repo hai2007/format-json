@@ -21,10 +21,11 @@
   },
   "dependencies": {
     "@hai2007/algorithm": "^0.7.2",
+    "@hai2007/browser": "^0.3.4",
     "@hai2007/polyfill": "^0.1.1",
     "@hai2007/style": "^0.3.0",
-    "@hai2007/tool": "^1.0.0",
-    "nefbl": "^0.2.1",
+    "@hai2007/tool": "^1.1.0",
+    "nefbl": "^0.2.6",
     "open-web-editor": "^0.3.2"
   }
 }
